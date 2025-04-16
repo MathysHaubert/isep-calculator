@@ -4,6 +4,12 @@ import java.util.*;
 
 public class Calculator {
 
+    /**
+     * Evaluates a mathematical expression given as a string using the Shunting-yard algorithm.
+     *
+     * @param expression the mathematical expression to evaluate
+     * @return the result of the evaluation
+     */
     public double evaluateMathExpression(String expression) {
 
         expression = expression.replaceAll("\\s+", "");
@@ -50,15 +56,36 @@ public class Calculator {
         for (String token : tokens) {
             if (token.matches("\\d+(\\.\\d+)?")) {
                 output.add(token);
+
             } else if ("+-*".contains(token)) {
-                while (!operators.isEmpty() && precedence.getOrDefault(operators.peek(), 0) >= precedence.get(token)) {
+                while (
+                        !operators.isEmpty() &&
+                        !operators.peek().equals("(") &&
+                        precedence.getOrDefault(operators.peek(), 0) >= precedence.get(token)
+                ) {
                     output.add(operators.pop());
                 }
                 operators.push(token);
+
+            } else if (token.equals("(")) {
+                operators.push(token);
+
+            } else if (token.equals(")")) {
+                while (!operators.isEmpty() && !operators.peek().equals("(")) {
+                    output.add(operators.pop());
+                }
+                if (!operators.isEmpty() && operators.peek().equals("(")) {
+                    operators.pop();
+                } else {
+                    throw new IllegalArgumentException("Mismatched parentheses");
+                }
             }
         }
 
         while (!operators.isEmpty()) {
+            if (operators.peek().equals("(")) {
+                throw new IllegalArgumentException("Mismatched parentheses");
+            }
             output.add(operators.pop());
         }
 
