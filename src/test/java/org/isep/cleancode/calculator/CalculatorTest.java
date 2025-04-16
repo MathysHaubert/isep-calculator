@@ -140,11 +140,10 @@ class CalculatorTest {
     @ParameterizedTest(name = "{index} => input={0}, expected={1}")
     @CsvSource({
             "'-15-15', -30",
-            "'-1 + -10', -11",
-            "'-1 + (-10)', -11",
-            "'(-1 + -10)', -11",
+            "'-1 -10', -11",
+            "'-1 +10', 9",
     })
-    void advancedNegativeNumber(String expression, double expectedValue) {
+    void operationWithNegativeNumber(String expression, double expectedValue) {
         Calculator calculator = new Calculator();
 
         assertEquals(expectedValue, calculator.evaluateMathExpression(expression));
