@@ -4,6 +4,13 @@ import java.util.*;
 
 public class Calculator {
 
+
+    private static String REGEX_REPLACE_UNARY = "(?<=^|[\\(\\+\\-\\*/])\\s*-\\s*(\\d+(?:\\.\\d+)?)";
+
+    private static String REGEX_REPLACE_UNARY_BEFORE_PARENTHISES = "(?<=^|[\\(\\+\\-\\*/])\\s*-\\s*\\(";
+
+    private static String REGEX_REPLACE_WHITESPACE = "\\s+";
+
     /**
      * Evaluates a mathematical expression given as a string using the Shunting-yard algorithm.
      *
@@ -12,7 +19,11 @@ public class Calculator {
      */
     public double evaluateMathExpression(String expression) {
 
-        expression = expression.replaceAll("\\s+", "");
+        expression = expression.replaceAll(Calculator.REGEX_REPLACE_WHITESPACE, "");
+
+        expression = expression.replaceAll(Calculator.REGEX_REPLACE_UNARY, "~$1");
+
+        expression = expression.replaceAll(Calculator.REGEX_REPLACE_UNARY_BEFORE_PARENTHISES, "~(");
 
         List<String> tokens = tokenize(expression);
 
@@ -25,23 +36,53 @@ public class Calculator {
         List<String> tokens = new ArrayList<>();
         StringBuilder number = new StringBuilder();
 
-        for (char c : expression.toCharArray()) {
-            if (Character.isDigit(c) || c == '.') {
+        for (int i = 0; i < expression.length(); i++) {
+            char c = expression.charAt(i);
+
+            if (Character.isDigit(c) || c == '.' || c == '~') {
                 number.append(c);
             } else {
                 if (!number.isEmpty()) {
-                    tokens.add(number.toString());
+                    String num = number.toString();
                     number.setLength(0);
+
+                    if (num.startsWith("~")) {
+                        String value = num.substring(1);
+                        tokens.add("(");
+                        tokens.add("0");
+                        tokens.add("-");
+                        tokens.add(value);
+                        tokens.add(")");
+                    } else {
+                        tokens.add(num);
+                    }
                 }
-                tokens.add(String.valueOf(c));
+
+                if ("+-*/()".indexOf(c) >= 0) {
+                    tokens.add(String.valueOf(c));
+                } else {
+                    throw new IllegalArgumentException("Invalid character: " + c);
+                }
             }
         }
+
         if (!number.isEmpty()) {
-            tokens.add(number.toString());
+            String num = number.toString();
+            if (num.startsWith("~")) {
+                String value = num.substring(1);
+                tokens.add("(");
+                tokens.add("0");
+                tokens.add("-");
+                tokens.add(value);
+                tokens.add(")");
+            } else {
+                tokens.add(num);
+            }
         }
 
         return tokens;
     }
+
 
     private List<String> toRPN(List<String> tokens) {
         List<String> output = new ArrayList<>();
@@ -54,19 +95,27 @@ public class Calculator {
         );
 
         for (String token : tokens) {
-            if (token.matches("\\d+(\\.\\d+)?")) {
+            if (token.startsWith("~")) {
+                String value = token.substring(1);
+                output.add("-" + value);
+
+            } else if (token.matches("\\d+(\\.\\d+)?")) {
                 output.add(token);
 
             } else if ("+-*".contains(token)) {
-                while (
-                        !operators.isEmpty() &&
-                        !operators.peek().equals("(") &&
-                        precedence.getOrDefault(operators.peek(), 0) >= precedence.get(token)
-                ) {
-                    output.add(operators.pop());
-                }
-                operators.push(token);
+                int tokenPrecedence = precedence.getOrDefault(token, -1);
+                if ("+-*".contains(token)) {
 
+                    while (
+                            !operators.isEmpty() &&
+                                    !operators.peek().equals("(") &&
+                                    precedence.getOrDefault(operators.peek(), 0) >= tokenPrecedence
+
+                    ) {
+                        output.add(operators.pop());
+                    }
+                    operators.push(token);
+                }
             } else if (token.equals("(")) {
                 operators.push(token);
 
@@ -111,4 +160,5 @@ public class Calculator {
 
         return stack.pop();
     }
+
 }
