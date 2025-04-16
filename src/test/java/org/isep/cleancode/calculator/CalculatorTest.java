@@ -1,5 +1,6 @@
 package org.isep.cleancode.calculator;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -147,5 +148,40 @@ class CalculatorTest {
         Calculator calculator = new Calculator();
 
         assertEquals(expectedValue, calculator.evaluateMathExpression(expression));
+    }
+    @ParameterizedTest(name = "{index} => input={0}, expected={1}")
+    @CsvSource({
+            "'10 / 2', 5",
+            "'6 / 3', 2",
+            "'4 / 2 + 3', 5",
+            "'6 / 2 * 3', 9"
+    })
+    void divisions(String expression, double expectedValue) {
+        Calculator calculator = new Calculator();
+
+        assertEquals(expectedValue, calculator.evaluateMathExpression(expression));
+    }
+    @ParameterizedTest(name = "{index} => input={0} doit lever une IllegalArgumentException")
+    @CsvSource({
+            "'1 + * 2'",
+            "'+'",
+            "'1 1 + 2'",
+            "'(1 + 2'",
+            "'1 + )2('"
+    })
+    void invalidExpressionsShouldThrow(String expression) {
+        Calculator calculator = new Calculator();
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            calculator.evaluateMathExpression(expression);
+        });
+    }
+    @Test
+    void divisionByZeroShouldThrow() {
+        Calculator calculator = new Calculator();
+
+        assertThrows(ArithmeticException.class, () -> {
+            calculator.evaluateMathExpression("10 / 0");
+        });
     }
 }

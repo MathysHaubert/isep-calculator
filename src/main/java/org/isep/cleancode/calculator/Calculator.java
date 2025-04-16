@@ -24,6 +24,11 @@ public class Calculator {
         expression = expression.replaceAll(Calculator.REGEX_REPLACE_UNARY, "~$1");
 
         expression = expression.replaceAll(Calculator.REGEX_REPLACE_UNARY_BEFORE_PARENTHISES, "~(");
+        expression = expression.trim();
+
+        if (expression.isEmpty()) {
+            throw new IllegalArgumentException("Expression vide");
+        }
 
         List<String> tokens = tokenize(expression);
 
@@ -91,7 +96,8 @@ public class Calculator {
         Map<String, Integer> precedence = Map.of(
                 "+", 1,
                 "-", 1,
-                "*", 2
+                "*", 2,
+                "/", 2
         );
 
         for (String token : tokens) {
@@ -102,9 +108,9 @@ public class Calculator {
             } else if (token.matches("\\d+(\\.\\d+)?")) {
                 output.add(token);
 
-            } else if ("+-*".contains(token)) {
+            } else if ("+-*/".contains(token)) {
                 int tokenPrecedence = precedence.getOrDefault(token, -1);
-                if ("+-*".contains(token)) {
+                if ("+-*/".contains(token)) {
 
                     while (
                             !operators.isEmpty() &&
@@ -145,17 +151,32 @@ public class Calculator {
         Stack<Double> stack = new Stack<>();
 
         for (String token : rpn) {
-            if (token.matches("\\d+(\\.\\d+)?")) {
+            if (token.matches("-?\\d+(\\.\\d+)?")) {
                 stack.push(Double.parseDouble(token));
             } else {
+                if (stack.size() < 2) {
+                    throw new IllegalArgumentException("Expression invalide : pas assez d'opérandes pour '" + token + "'");
+                }
+
                 double b = stack.pop();
                 double a = stack.pop();
                 switch (token) {
                     case "+" -> stack.push(a + b);
                     case "-" -> stack.push(a - b);
                     case "*" -> stack.push(a * b);
+                    case "/" -> {
+                        if (b == 0) {
+                            throw new ArithmeticException("Division par zéro");
+                        }
+                        stack.push(a / b);
+                    }
+                    default -> throw new IllegalArgumentException("Opérateur inconnu: " + token);
                 }
             }
+        }
+
+        if (stack.size() != 1) {
+            throw new IllegalArgumentException("Expression invalide : trop d'opérandes");
         }
 
         return stack.pop();
