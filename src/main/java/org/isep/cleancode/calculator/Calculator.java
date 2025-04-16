@@ -1,19 +1,17 @@
 package org.isep.cleancode.calculator;
 
-import java.util.*;
+import org.isep.cleancode.regex.RegexType;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Calculator {
-
-
-    private final static String REGEX_REPLACE_UNARY = "(?<=^|[\\(\\+\\-\\*/])\\s*-\\s*(\\d+(?:\\.\\d+)?)";
-
-    private final static String REGEX_REPLACE_UNARY_BEFORE_PARENTHISES = "(?<=^|[\\(\\+\\-\\*/])\\s*-\\s*\\(";
-
-    private final static String REGEX_REPLACE_WHITESPACE = "\\s+";
-
     private final static String OPERATORS = "+-*/";
+
 
     /**
      * Evaluates a mathematical expression given as a string using the Shunting-yard algorithm.
@@ -23,18 +21,17 @@ public class Calculator {
      */
     public double evaluateMathExpression(String expression) {
 
-        Pattern pattern = Pattern.compile("(\\d+(?:\\.\\d+)?|\\))\\s+(?=\\d|~|\\()");
+        Pattern pattern = Pattern.compile(RegexType.NO_OPERATORS.pattern(), Pattern.DOTALL);
         Matcher matcher = pattern.matcher(expression);
         if (matcher.find()) {
             throw new IllegalArgumentException("Expression invalide : pas d'opérateurs entre les opérandes");
         }
 
-        expression = expression.replaceAll(Calculator.REGEX_REPLACE_WHITESPACE, "");
+        expression = expression.replaceAll(RegexType.WHITESPACE.pattern(), "");
 
-        expression = expression.replaceAll(Calculator.REGEX_REPLACE_UNARY, "~$1");
+        expression = expression.replaceAll(RegexType.UNARY.pattern(), "~$1");
 
-        expression = expression.replaceAll(Calculator.REGEX_REPLACE_UNARY_BEFORE_PARENTHISES, "~(");
-        expression = expression.trim();
+        expression = expression.replaceAll(RegexType.UNARY_BEFORE_PARENTHESIS.pattern(), "~(");
 
         if (expression.isEmpty()) {
             throw new IllegalArgumentException("Expression vide");
@@ -63,7 +60,7 @@ public class Calculator {
 
                     if (num.startsWith("~")) {
                         String value = num.substring(1);
-                        this.replaceNegativeNumberByOperation(tokens,value);
+                        this.replaceNegativeNumberByOperation(tokens, value);
                     } else {
                         tokens.add(num);
                     }
@@ -81,7 +78,7 @@ public class Calculator {
             String num = number.toString();
             if (num.startsWith("~")) {
                 String value = num.substring(1);
-                this.replaceNegativeNumberByOperation(tokens,value);
+                this.replaceNegativeNumberByOperation(tokens, value);
             } else {
                 tokens.add(num);
             }
