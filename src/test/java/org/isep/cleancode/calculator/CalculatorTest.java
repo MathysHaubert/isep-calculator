@@ -176,6 +176,7 @@ class CalculatorTest {
             calculator.evaluateMathExpression(expression);
         });
     }
+
     @Test
     void divisionByZeroShouldThrow() {
         Calculator calculator = new Calculator();
@@ -183,5 +184,18 @@ class CalculatorTest {
         assertThrows(ArithmeticException.class, () -> {
             calculator.evaluateMathExpression("10 / 0");
         });
+    }
+
+    @ParameterizedTest(name = "{index} => input={0}, expected={1}")
+    @CsvSource({
+            "'10%2', 0",
+            "'10%5', 0",
+            "'10%3', 1"
+
+    })
+    void modulo(String expression, double expectedValue) {
+        Calculator calculator = new Calculator();
+
+        assertEquals(expectedValue, calculator.evaluateMathExpression(expression));
     }
 }

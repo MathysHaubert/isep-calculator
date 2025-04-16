@@ -10,7 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Calculator {
-    private final static String OPERATORS = "+-*/";
+    private final static String OPERATORS = "+-*/%";
 
 
     /**
@@ -66,7 +66,7 @@ public class Calculator {
                     }
                 }
 
-                if ("+-*/()".indexOf(c) >= 0) {
+                if ("+-*/()%".indexOf(c) >= 0) {
                     tokens.add(String.valueOf(c));
                 } else {
                     throw new IllegalArgumentException("Invalid character: " + c);
@@ -96,7 +96,8 @@ public class Calculator {
                 "+", 1,
                 "-", 1,
                 "*", 2,
-                "/", 2
+                "/", 2,
+                "%", 2
         );
 
         for (String token : tokens) {
@@ -163,6 +164,7 @@ public class Calculator {
                     case "+" -> stack.push(a + b);
                     case "-" -> stack.push(a - b);
                     case "*" -> stack.push(a * b);
+                    case "%" -> stack.push(a % b);
                     case "/" -> {
                         if (b == 0) {
                             throw new ArithmeticException("Division par zéro");
