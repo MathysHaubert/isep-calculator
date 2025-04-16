@@ -1,35 +1,49 @@
 package org.isep.cleancode.calculator;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Calculator {
 
-    private static final String REGEX_REPLACE_UNARY = "(?<=^|[\\(\\+\\-\\*/])\\s*-\\s*(\\d+(?:\\.\\d+)?)";
-    private static final String REGEX_REPLACE_UNARY_BEFORE_PARENTHISES = "(?<=^|[\\(\\+\\-\\*/])\\s*-\\s*\\(";
-    private static final String REGEX_REPLACE_WHITESPACE = "\\s+";
+
+    private final static String REGEX_REPLACE_UNARY = "(?<=^|[\\(\\+\\-\\*/])\\s*-\\s*(\\d+(?:\\.\\d+)?)";
+
+    private final static String REGEX_REPLACE_UNARY_BEFORE_PARENTHISES = "(?<=^|[\\(\\+\\-\\*/])\\s*-\\s*\\(";
+
+    private final static String REGEX_REPLACE_WHITESPACE = "\\s+";
+
+    private final static String OPERATORS = "+-*/";
 
     /**
-     * Évalue une expression mathématique au format chaîne en utilisant l’algorithme de Shunting-yard.
+     * Evaluates a mathematical expression given as a string using the Shunting-yard algorithm.
      *
-     * @param expression L'expression mathématique à évaluer.
-     * @return Le résultat numérique de l’évaluation.
+     * @param expression the mathematical expression to evaluate
+     * @return the result of the evaluation
      */
     public double evaluateMathExpression(String expression) {
-        
+
+        Pattern pattern = Pattern.compile("(\\d+(?:\\.\\d+)?|\\))\\s+(?=\\d|~|\\()");
+        Matcher matcher = pattern.matcher(expression);
+        if (matcher.find()) {
+            throw new IllegalArgumentException("Expression invalide : pas d'opérateurs entre les opérandes");
+        }
+
+        expression = expression.replaceAll(Calculator.REGEX_REPLACE_WHITESPACE, "");
+
+        expression = expression.replaceAll(Calculator.REGEX_REPLACE_UNARY, "~$1");
+
+        expression = expression.replaceAll(Calculator.REGEX_REPLACE_UNARY_BEFORE_PARENTHISES, "~(");
         expression = expression.trim();
+
         if (expression.isEmpty()) {
             throw new IllegalArgumentException("Expression vide");
         }
-        if (expression.matches(".*\\d+\\s+\\d+.*")) {
-            throw new IllegalArgumentException("Deux nombres consécutifs sans opérateur détectés");
-        }
-
-        expression = expression.replaceAll(REGEX_REPLACE_WHITESPACE, "");
-        expression = expression.replaceAll(REGEX_REPLACE_UNARY, "~$1");
-        expression = expression.replaceAll(REGEX_REPLACE_UNARY_BEFORE_PARENTHISES, "~(");
 
         List<String> tokens = tokenize(expression);
+
         List<String> rpn = toRPN(tokens);
+
         return evaluateRPN(rpn);
     }
 
@@ -39,27 +53,22 @@ public class Calculator {
 
         for (int i = 0; i < expression.length(); i++) {
             char c = expression.charAt(i);
-            
+
             if (Character.isDigit(c) || c == '.' || c == '~') {
                 number.append(c);
             } else {
-                
                 if (!number.isEmpty()) {
                     String num = number.toString();
                     number.setLength(0);
+
                     if (num.startsWith("~")) {
-                        
                         String value = num.substring(1);
-                        tokens.add("(");
-                        tokens.add("0");
-                        tokens.add("-");
-                        tokens.add(value);
-                        tokens.add(")");
+                        this.replaceNegativeNumberByOperation(tokens,value);
                     } else {
                         tokens.add(num);
                     }
                 }
-                
+
                 if ("+-*/()".indexOf(c) >= 0) {
                     tokens.add(String.valueOf(c));
                 } else {
@@ -67,16 +76,12 @@ public class Calculator {
                 }
             }
         }
-        
+
         if (!number.isEmpty()) {
             String num = number.toString();
             if (num.startsWith("~")) {
                 String value = num.substring(1);
-                tokens.add("(");
-                tokens.add("0");
-                tokens.add("-");
-                tokens.add(value);
-                tokens.add(")");
+                this.replaceNegativeNumberByOperation(tokens,value);
             } else {
                 tokens.add(num);
             }
@@ -84,6 +89,7 @@ public class Calculator {
 
         return tokens;
     }
+
 
     private List<String> toRPN(List<String> tokens) {
         List<String> output = new ArrayList<>();
@@ -97,17 +103,30 @@ public class Calculator {
         );
 
         for (String token : tokens) {
-            if (token.matches("\\d+(\\.\\d+)?")) {
+            if (token.startsWith("~")) {
+                String value = token.substring(1);
+                output.add("-" + value);
+
+            } else if (token.matches("\\d+(\\.\\d+)?")) {
                 output.add(token);
-            } else if ("+-*/".contains(token)) {
+
+            } else if (Calculator.OPERATORS.contains(token)) {
                 int tokenPrecedence = precedence.getOrDefault(token, -1);
-                while (!operators.isEmpty() && !operators.peek().equals("(") &&
-                        precedence.getOrDefault(operators.peek(), 0) >= tokenPrecedence) {
-                    output.add(operators.pop());
+                if (Calculator.OPERATORS.contains(token)) {
+
+                    while (
+                            !operators.isEmpty() &&
+                                    !operators.peek().equals("(") &&
+                                    precedence.getOrDefault(operators.peek(), 0) >= tokenPrecedence
+
+                    ) {
+                        output.add(operators.pop());
+                    }
+                    operators.push(token);
                 }
-                operators.push(token);
             } else if (token.equals("(")) {
                 operators.push(token);
+
             } else if (token.equals(")")) {
                 while (!operators.isEmpty() && !operators.peek().equals("(")) {
                     output.add(operators.pop());
@@ -140,6 +159,7 @@ public class Calculator {
                 if (stack.size() < 2) {
                     throw new IllegalArgumentException("Expression invalide : pas assez d'opérandes pour '" + token + "'");
                 }
+
                 double b = stack.pop();
                 double a = stack.pop();
                 switch (token) {
@@ -163,4 +183,13 @@ public class Calculator {
 
         return stack.pop();
     }
+
+    private void replaceNegativeNumberByOperation(List<String> tokens, String value) {
+        tokens.add("(");
+        tokens.add("0");
+        tokens.add("-");
+        tokens.add(value);
+        tokens.add(")");
+    }
+
 }
